@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sign Test</title>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<style>
+  body { margin: 20px; font-family: sans-serif; background: #f5f5f5; }
+  h2 { margin-bottom: 10px; }
+  #wrap {
+    background: white;
+    border: 2px solid #2878a0;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 500px;
+  }
+  canvas { display: block; width: 100%; height: 200px; }
+  button { margin-top: 10px; padding: 12px 24px; font-size: 16px; background: #2878a0; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  #status { margin-top: 10px; color: #333; font-size: 14px; padding: 8px; background: #eee; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h2>Signature Test</h2>
+<p>Draw your signature below:</p>
+<div id="wrap">
+  <canvas id="c"></canvas>
+</div>
+<button onclick="clearPad()">Clear</button>
+<button onclick="check()">Check if signed</button>
+<div id="status">Waiting...</div>
+
+<script>
+var canvas = document.getElementById('c');
+var status = document.getElementById('status');
+var pad;
+
+window.addEventListener('load', function() {
+  // Size the canvas correctly
+  var ratio = Math.max(window.devicePixelRatio || 1, 1);
+  canvas.width  = canvas.offsetWidth  * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  canvas.getContext('2d').scale(ratio, ratio);
+
+  pad = new SignaturePad(canvas, {
+    minWidth: 1,
+    maxWidth: 3,
+    penColor: '#000'
+  });
+
+  pad.addEventListener('beginStroke', function() {
+    status.textContent = '✅ Drawing detected!';
+    status.style.background = '#d4edda';
+  });
+
+  status.textContent = 'Pad ready — try signing above';
+});
+
+function clearPad() {
+  pad.clear();
+  status.textContent = 'Cleared';
+  status.style.background = '#eee';
+}
+
+function check() {
+  if (pad.isEmpty()) {
+    status.textContent = '❌ No signature yet';
+    status.style.background = '#f8d7da';
+  } else {
+    status.textContent = '✅ Signature captured!';
+    status.style.background = '#d4edda';
+  }
+}
+</script>
+</body>
+</html>
