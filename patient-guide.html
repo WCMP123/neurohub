@@ -910,32 +910,17 @@
         </div>
       </div>
 
-      <div class="sig-row" id="canvas-sig-row" style="display:none;">
-        <div class="sig-box">
-          <label>Patient Signature</label>
-          <div class="sig-pad" id="sig-pad">
-            <span class="sig-hint" id="sig-hint">Sign here</span>
+      <!-- SIGNATURE -->
+      <div style="margin-top:28px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Patient Signature</label>
+            <input type="text" id="mobile-sig" name="patient_signature_name" placeholder="Type your full name" style="width:100%;border:none;border-bottom:2px solid var(--sage);padding:10px 0;font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--dark);outline:none;background:transparent;box-sizing:border-box;">
           </div>
-          <button type="button" class="sig-clear" onclick="sigPad.clear()">Clear</button>
-        </div>
-        <div class="sig-box">
-          <label>Witness Signature <span style="font-size:10px;opacity:0.6;">(if applicable)</span></label>
-          <div class="sig-pad" id="wit-pad">
-            <span class="sig-hint" id="wit-hint">Sign here</span>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Witness Signature <span style="font-weight:300;font-size:11px;">(if applicable)</span></label>
+            <input type="text" id="mobile-wit" name="witness_signature_name" placeholder="Type witness full name" style="width:100%;border:none;border-bottom:2px solid var(--border);padding:10px 0;font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--dark);outline:none;background:transparent;box-sizing:border-box;">
           </div>
-          <button type="button" class="sig-clear" onclick="witPad.clear()">Clear</button>
-        </div>
-      </div>
-
-      <!-- Mobile fallback signature -->
-      <div id="mobile-sig-section" style="display:block;">
-        <div style="margin-bottom:14px;">
-          <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Patient — Type Full Name as Signature</label>
-          <input type="text" id="mobile-sig" name="patient_signature_name" placeholder="Type your full name" style="width:100%;border:none;border-bottom:2px solid var(--sage);padding:8px 0;font-family:Georgia,serif;font-size:18px;font-style:italic;color:var(--dark);outline:none;background:transparent;">
-        </div>
-        <div>
-          <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Witness — Type Full Name <span style="font-weight:300;font-size:11px;">(if applicable)</span></label>
-          <input type="text" id="mobile-wit" name="witness_signature_name" placeholder="Type witness full name" style="width:100%;border:none;border-bottom:2px solid var(--border);padding:8px 0;font-family:Georgia,serif;font-size:18px;font-style:italic;color:var(--dark);outline:none;background:transparent;">
         </div>
       </div>
 
@@ -966,15 +951,7 @@
 </div>
 
 <script>
-  // ── MOBILE DETECTION ─────────────────────────────────────────
-  window.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if (!window.isMobile) {
-    // Desktop: show canvas, hide text fallback
-    var sigRow = document.getElementById('canvas-sig-row');
-    if (sigRow) sigRow.style.display = 'grid';
-    var mobileSec = document.getElementById('mobile-sig-section');
-    if (mobileSec) mobileSec.style.display = 'none';
-  }
+
 
 
 (function() {
@@ -1168,16 +1145,10 @@
       btn.textContent = 'Sending…';
       btn.style.opacity = '0.6';
 
-      var sigPadSigned, witPadSigned, sigName = '', witName = '';
-      if (window.isMobile) {
-        sigName = (document.getElementById('mobile-sig') || {}).value || '';
-        witName = (document.getElementById('mobile-wit') || {}).value || '';
-        sigPadSigned = sigName.trim().length > 0;
-        witPadSigned = witName.trim().length > 0;
-      } else {
-        sigPadSigned = sigPad && sigPad.isSigned();
-        witPadSigned = witPad && witPad.isSigned();
-      }
+      var sigName = (document.getElementById('mobile-sig') || {}).value || '';
+      var witName = (document.getElementById('mobile-wit') || {}).value || '';
+      var sigPadSigned = sigName.trim().length > 0;
+      var witPadSigned = witName.trim().length > 0;
 
       var payload = new FormData();
       payload.append('_subject', 'New Patient Registration — NeuroHub');
@@ -1191,8 +1162,8 @@
         }
       });
 
-      payload.append('Patient Signature', sigPadSigned ? (window.isMobile ? 'Signed as: ' + sigName : 'Yes — signed digitally') : 'Not signed');
-      payload.append('Witness Signature', witPadSigned ? (window.isMobile ? 'Signed as: ' + witName : 'Yes — signed digitally') : 'Not signed');
+      payload.append('Patient Signature', sigPadSigned ? 'Signed as: ' + sigName.trim() : 'Not signed');
+      payload.append('Witness Signature', witPadSigned ? 'Signed as: ' + witName.trim() : 'Not signed');
 
       fetch('https://formspree.io/f/mykbylrr', {
         method:  'POST',
