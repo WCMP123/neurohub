@@ -381,62 +381,18 @@
   }
   .consent-field input:focus { border-bottom-color: var(--sage); }
   .consent-field.full { grid-column: 1 / -1; }
-  .sig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 28px; align-items: end; }
+
   @media (max-width: 540px) { .sig-row { grid-template-columns: 1fr; } }
-  .sig-box label {
-    display: block;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--sage);
-    margin-bottom: 8px;
-  }
-  .sig-pad {
-    border: 2px dashed var(--border);
-    border-radius: 12px;
-    background: #fff;
-    height: 150px;
-    width: 100%;
-    position: relative;
-    touch-action: none;
-    z-index: 0;
-    -webkit-user-select: none;
-    user-select: none;
-    cursor: crosshair;
-    display: block;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-  .sig-pad canvas {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%;
-    height: 100%;
-    display: block;
-    touch-action: none;
-  }
-  .sig-hint {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    color: #bbb;
-    font-size: 13px;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 1;
-  }
+
+
+
+
   @media (max-width: 600px) {
-    .sig-row { grid-template-columns: 1fr !important; }
-    .sig-pad { height: 180px; } .sig-row { gap: 16px; }
+  
+ 
   }
   /* sig-hint handled above */
-  .sig-clear {
-    margin-top: 6px; background: none; border: none;
-    font-family: 'DM Sans', sans-serif; font-size: 12px;
-    color: var(--mid); cursor: pointer; padding: 0;
-    text-decoration: underline; opacity: 0.6;
-  }
+
   .sig-clear:hover { opacity: 1; }
   .consent-submit { margin-top: 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   .btn-submit {
@@ -546,6 +502,7 @@
   .details-field input:focus { border-bottom-color: var(--sage); }
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 </head>
 <body>
 
@@ -564,7 +521,7 @@
 </div>
 
 <div class="container">
-<form id="patient-form" action="https://formspree.io/f/mykbylrr" method="POST">
+<div id="patient-form">
 
   <!-- PATIENT DETAILS -->
   <div class="details-box">
@@ -910,25 +867,33 @@
         </div>
       </div>
 
-      <div class="sig-row">
-        <div class="sig-box">
-          <label>Signature</label>
-          <div class="sig-pad" id="sig-pad">
-            <span class="sig-hint" id="sig-hint">Sign here</span>
+      <!-- SIGNATURE -->
+      <div style="margin-top:28px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+          <div class="sig-box">
+            <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Patient Signature</label>
+            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;">
+              <canvas id="sig-canvas" style="width:100%;height:150px;display:block;border-radius:12px;touch-action:none;"></canvas>
+              <div id="sig-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;">Sign here</div>
+            </div>
+            <button type="button" onclick="sigPad.clear();document.getElementById('sig-empty').style.display='block';" style="margin-top:6px;background:none;border:none;font-family:inherit;font-size:12px;color:var(--mid);cursor:pointer;text-decoration:underline;padding:0;">Clear</button>
           </div>
-          <button type="button" class="sig-clear" onclick="sigPad.clear()">Clear</button>
-        </div>
-        <div class="sig-box">
-          <label>Witness <span style="font-size:10px;opacity:0.6;">(if applicable)</span></label>
-          <div class="sig-pad" id="wit-pad">
-            <span class="sig-hint" id="wit-hint">Sign here</span>
+
+          <div class="sig-box">
+            <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Witness Signature <span style="font-weight:300;font-size:11px;">(if applicable)</span></label>
+            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;">
+              <canvas id="wit-canvas" style="width:100%;height:150px;display:block;border-radius:12px;touch-action:none;"></canvas>
+              <div id="wit-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;">Sign here</div>
+            </div>
+            <button type="button" onclick="witPad.clear();document.getElementById('wit-empty').style.display='block';" style="margin-top:6px;background:none;border:none;font-family:inherit;font-size:12px;color:var(--mid);cursor:pointer;text-decoration:underline;padding:0;">Clear</button>
           </div>
-          <button type="button" class="sig-clear" onclick="witPad.clear()">Clear</button>
+
         </div>
       </div>
 
       <div class="consent-submit">
-        <button class="btn-submit" type="submit" id="submit-btn">✓ &nbsp;I Acknowledge & Agree</button>
+        <button class="btn-submit" type="button" id="submit-btn" onclick="submitForm()">✓ &nbsp;I Acknowledge & Agree</button>
         <span class="consent-note">Submitting confirms you have read and agreed to all terms above.</span>
       </div>
       <div class="consent-success" id="consent-success">
@@ -950,15 +915,70 @@
   </div>
 
 </div>
-</form>
+</div>
 </div>
 
 <script>
+
+
+
 (function() {
+
+  // ── SIGNATURE PAD (SignaturePad.js) ──────────────────────────
+  var sigPad = null, witPad = null;
+
+  function initPads() {
+    var ratio = Math.max(window.devicePixelRatio || 1, 1);
+    function setupPad(canvasId, emptyId) {
+      var c = document.getElementById(canvasId);
+      if (!c) return null;
+      c.width  = c.offsetWidth  * ratio;
+      c.height = c.offsetHeight * ratio;
+      c.getContext('2d').scale(ratio, ratio);
+      var pad = new SignaturePad(c, { minWidth:1, maxWidth:3, penColor:'#1e3a4a' });
+      pad.addEventListener('beginStroke', function() {
+        var el = document.getElementById(emptyId);
+        if (el) el.style.display = 'none';
+      });
+      return pad;
+    }
+    sigPad = setupPad('sig-canvas', 'sig-empty');
+    witPad = setupPad('wit-canvas', 'wit-empty');
+  }
+
+  if (document.readyState === 'complete') { initPads(); }
+  else { window.addEventListener('load', initPads); }
+
 
   // Fix contact email link (prevents Cloudflare obfuscation)
   var el = document.getElementById('contac
 (function() {
+
+  // ── SIGNATURE PAD (SignaturePad.js) ──────────────────────────
+  var sigPad = null, witPad = null;
+
+  function initPads() {
+    var ratio = Math.max(window.devicePixelRatio || 1, 1);
+    function setupPad(canvasId, emptyId) {
+      var c = document.getElementById(canvasId);
+      if (!c) return null;
+      c.width  = c.offsetWidth  * ratio;
+      c.height = c.offsetHeight * ratio;
+      c.getContext('2d').scale(ratio, ratio);
+      var pad = new SignaturePad(c, { minWidth:1, maxWidth:3, penColor:'#1e3a4a' });
+      pad.addEventListener('beginStroke', function() {
+        var el = document.getElementById(emptyId);
+        if (el) el.style.display = 'none';
+      });
+      return pad;
+    }
+    sigPad = setupPad('sig-canvas', 'sig-empty');
+    witPad = setupPad('wit-canvas', 'wit-empty');
+  }
+
+  if (document.readyState === 'complete') { initPads(); }
+  else { window.addEventListener('load', initPads); }
+
 
   // Fix contact email link (prevents Cloudflare obfuscation)
   var el = document.getElementById('contact-email-link');
@@ -977,149 +997,11 @@
   var dateField = document.getElementById('field-date');
   if (dateField) dateField.placeholder = dd + ' / ' + mm + ' / ' + yyyy;
 
-  // ── SIGNATURE PADS ──────────────────────────────────────────
-  function makePad(padId, hintId) {
-    var pad  = document.getElementById(padId);
-    var hint = document.getElementById(hintId);
-    if (!pad) return { clear: function(){}, isSigned: function(){ return false; } };
+  // Signature handled via text input fields
 
-    var cv  = document.createElement('canvas');
-    cv.style.cssText = 'display:block;position:absolute;top:0;left:0;width:100%;height:100%;touch-action:none;z-index:10;';
-    pad.appendChild(cv);
-    var ctx = cv.getContext('2d');
 
-    function size() {
-      // Use explicit pixel size from bounding rect
-      var r = pad.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) {
-        cv.width  = Math.floor(r.width);
-        cv.height = Math.floor(r.height);
-      }
-    }
-
-    // Run size after layout is fully painted
-    setTimeout(size, 100);
-    setTimeout(size, 500);
-    window.addEventListener('resize', size);
-
-    var down = false;
-
-    function pt(e) {
-      var r   = cv.getBoundingClientRect();
-      var src = e.touches ? e.touches[0] : e;
-      return {
-        x: (src.clientX - r.left) * (cv.width  / r.width),
-        y: (src.clientY - r.top)  * (cv.height / r.height)
-      };
-    }
-
-    function onDown(e) {
-      e.preventDefault();
-      // Resize on first touch in case layout changed
-      size();
-      down = true;
-      var p = pt(e);
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.strokeStyle = '#1e3a4a';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      if (hint) hint.style.display = 'none';
-    }
-    function onMove(e) {
-      e.preventDefault();
-      if (!down) return;
-      var p = pt(e);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-    }
-    function onUp(e) { down = false; }
-
-    cv.addEventListener('mousedown',  onDown, false);
-    cv.addEventListener('mousemove',  onMove, false);
-    cv.addEventListener('mouseup',    onUp,   false);
-    cv.addEventListener('mouseleave', onUp,   false);
-    cv.addEventListener('touchstart', onDown, { passive: false });
-    cv.addEventListener('touchmove',  onMove, { passive: false });
-    cv.addEventListener('touchend',   onUp,   { passive: false });
-
-    return {
-      clear: function() {
-        ctx.clearRect(0, 0, cv.width, cv.height);
-        if (hint) hint.style.display = '';
-      },
-      isSigned: function() {
-        try {
-          var d = ctx.getImageData(0, 0, cv.width, cv.height).data;
-          for (var i = 3; i < d.length; i += 4) if (d[i] > 0) return true;
-        } catch(err) {}
-        return false;
-      }
-    };
-  }
-
-    function onDown(e) {
-      e.preventDefault();
-      down = true;
-      size();
-      var p = pt(e);
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.strokeStyle = '#1e3a4a';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      if (hint) hint.style.display = 'none';
-    }
-    function onMove(e) {
-      e.preventDefault();
-      if (!down) return;
-      var p = pt(e);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-    }
-    function onUp(e) { down = false; }
-
-    cv.addEventListener('mousedown',  onDown, false);
-    cv.addEventListener('mousemove',  onMove, false);
-    cv.addEventListener('mouseup',    onUp,   false);
-    cv.addEventListener('mouseleave', onUp,   false);
-    cv.addEventListener('touchstart', onDown, { passive: false });
-    cv.addEventListener('touchmove',  onMove, { passive: false });
-    cv.addEventListener('touchend',   onUp,   { passive: false });
-
-    return {
-      clear: function() {
-        ctx.clearRect(0, 0, cv.width, cv.height);
-        if (hint) hint.style.display = '';
-      },
-      isSigned: function() {
-        var d = ctx.getImageData(0, 0, cv.width, cv.height).data;
-        for (var i = 3; i < d.length; i += 4) if (d[i] > 0) return true;
-        return false;
-      }
-    };
-  }
-
-  var sigPad = makePad('sig-pad', 'sig-hint');
-  var witPad = makePad('wit-pad', 'wit-hint');
-
-  // aliases
-  window.clearSig = function() { sigPad.clear(); };
-  window.clearWit = function() { witPad.clear(); };
-
-  // Keep old initCanvas alias so clearSig/clearWit still work
-  var initCanvas = initSVGPad;
-
-  var sig = initSVGPad('sig-canvas', 'sig-wrap', 'sig-placeholder');
   var wit = initCanvas('wit-canvas', 'wit-wrap', 'wit-placeholder');
 
-  window.clearSig = function() { sigPad.clear(); };
-  window.clearWit = function() { witPad.clear(); };
 
   // ── RESPONSIBLE PERSON TOGGLE ───────────────────────────────
   window.toggleResponsible = function(cb) {
@@ -1130,11 +1012,7 @@
   };
 
   // ── FORMSPREE SUBMISSION ────────────────────────────────────
-  var form = document.getElementById('patient-form');
-  if (form) {
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-
+  window.submitForm = function() {
       var nameField = document.getElementById('field-patient');
       if (nameField && !nameField.value.trim()) {
         nameField.focus();
@@ -1149,79 +1027,25 @@
       btn.textContent = 'Sending…';
       btn.style.opacity = '0.6';
 
-      // Check signatures
-      var sigCanvas = document.getElementById('sig-canvas');
-      var witCanvas = document.getElementById('wit-canvas');
-      var patientSigned = sigCanvas && sigCanvas.getContext('2d').getImageData(0,0,sigCanvas.width,sigCanvas.height).data.some(function(x,i){ return i%4!==3 && x>0; });
-      var witnessSigned = witCanvas && witCanvas.getContext('2d').getImageData(0,0,witCanvas.width,witCanvas.height).data.some(function(x,i){ return i%4!==3 && x>0; });
+      var patientDidSign = sigPad && !sigPad.isEmpty();
+      var witnessDidSign = witPad && !witPad.isEmpty();
 
-      // Collect all named form fields into an object
-      var formData = new FormData(form);
-      var fields = {};
-      formData.forEach(function(val, key) { if (key !== '_subject') fields[key] = val; });
-      fields['patient_signed']  = patientSigned ? 'Yes — signed digitally' : 'No signature provided';
-      fields['witness_signed']  = witnessSigned ? 'Yes — signed digitally' : 'Not signed';
-
-      // (table built by Formspree _template:table)
-
-
-      // Build clean payload with readable labels, skipping empty fields
       var payload = new FormData();
       payload.append('_subject', 'New Patient Registration — NeuroHub');
       payload.append('_template', 'table');
 
-      function addField(label, value) {
-        if (value && value.trim && value.trim() !== '') {
-          payload.append(label, value.trim());
+      // Collect all input/select fields from the form div
+      var allInputs = document.getElementById('patient-form').querySelectorAll('input[name], select[name], textarea[name]');
+      allInputs.forEach(function(inp) {
+        if (inp.name && inp.name.charAt(0) !== '_' && inp.value.trim()) {
+          payload.append(inp.name, inp.value.trim());
         }
-      }
+      });
 
-      // ── PATIENT INFORMATION ──
-      payload.append('▸ PATIENT INFORMATION', '──────────────');
-      addField('Full Name',                          fields['patient_full_name']);
-      addField('Date of Birth',                      fields['patient_dob']);
-      addField('ID / Passport Number',               fields['patient_id_number']);
-      addField('Gender',                             fields['patient_gender']);
-      addField('Home Language',                      fields['patient_language']);
-      addField('Residential Address',                fields['patient_address']);
-      addField('Cell Number',                        fields['patient_cell']);
-      addField('Email Address',                      fields['patient_email']);
-      addField('Occupation / School',                fields['patient_occupation']);
-      addField('Employer / School',                  fields['patient_employer']);
+      payload.append('Patient Signature', patientDidSign ? 'Yes — signed digitally' : 'Not signed');
+      payload.append('Witness Signature', witnessDidSign ? 'Yes — signed digitally' : 'Not signed');
 
-      // ── MEDICAL AID ──
-      payload.append('▸ MEDICAL AID', '──────────────');
-      addField('Medical Aid Scheme',                 fields['medaid_scheme']);
-      addField('Plan / Option',                      fields['medaid_plan']);
-      addField('Member Number',                      fields['medaid_member_number']);
-      addField('Dependant Code',                     fields['medaid_dependant_code']);
-      addField('Main Member Full Name',              fields['medaid_main_member_name']);
-      addField('Main Member ID Number',              fields['medaid_main_member_id']);
-      addField('Main Member Date of Birth',          fields['medaid_main_member_dob']);
-      addField('Main Member Cell',                   fields['medaid_main_member_cell']);
-
-      // ── RESPONSIBLE PERSON ──
-      payload.append('▸ RESPONSIBLE FOR ACCOUNT', '──────────────');
-      addField('Relationship to Patient',            fields['responsible_relationship'] || fields['consent_relationship']);
-      addField('Full Name',                          fields['responsible_full_name']);
-      addField('ID / Passport Number',               fields['responsible_id']);
-      addField('Date of Birth',                      fields['responsible_dob']);
-      addField('Residential Address',                fields['responsible_address']);
-      addField('Cell Number',                        fields['responsible_cell']);
-      addField('Email Address',                      fields['responsible_email']);
-      addField('Occupation',                         fields['responsible_occupation']);
-      addField('Employer',                           fields['responsible_employer']);
-
-      // ── CONSENT ──
-      payload.append('▸ CONSENT & SIGNATURE', '──────────────');
-      addField('Signer Name',                        fields['consent_signer_name']);
-      addField('Date Signed',                        fields['consent_date']);
-      addField('Relationship',                       fields['consent_relationship']);
-      addField('Medical Aid Reference',              fields['consent_medaid']);
-      addField('Patient Signature',                  fields['patient_signed']);
-      addField('Witness Signature',                  fields['witness_signed']);
-
-      fetch(form.action, {
+      fetch('https://formspree.io/f/mykbylrr', {
         method:  'POST',
         headers: { 'Accept': 'application/json' },
         body:    payload
@@ -1232,6 +1056,16 @@
           btn.textContent = '✓ Submitted';
           document.querySelector('.consent-submit').scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
+          throw new Error('Server error');
+        }
+      })
+      .catch(function() {
+        btn.disabled    = false;
+        btn.style.opacity = '1';
+        btn.textContent = '✓ I Acknowledge & Agree';
+        alert('There was a problem submitting. Please try again.');
+      });
+    }; else {
           return response.json().then(function(data) { throw new Error(JSON.stringify(data)); });
         }
       })
