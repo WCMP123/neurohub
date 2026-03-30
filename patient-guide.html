@@ -400,6 +400,7 @@
     width: 100%;
     position: relative;
     touch-action: none;
+    z-index: 0;
     -webkit-user-select: none;
     user-select: none;
     cursor: crosshair;
@@ -423,6 +424,7 @@
     font-size: 13px;
     pointer-events: none;
     white-space: nowrap;
+    z-index: 1;
   }
   @media (max-width: 600px) {
     .sig-row { grid-template-columns: 1fr !important; }
@@ -562,7 +564,7 @@
 </div>
 
 <div class="container">
-<form id="patient-form" action="https://formspree.io/f/mykbylrr" method="POST">
+<div id="patient-form">
 
   <!-- PATIENT DETAILS -->
   <div class="details-box">
@@ -926,7 +928,7 @@
       </div>
 
       <div class="consent-submit">
-        <button class="btn-submit" type="submit" id="submit-btn">✓ &nbsp;I Acknowledge & Agree</button>
+        <button class="btn-submit" type="button" id="submit-btn" onclick="submitForm()">✓ &nbsp;I Acknowledge & Agree</button>
         <span class="consent-note">Submitting confirms you have read and agreed to all terms above.</span>
       </div>
       <div class="consent-success" id="consent-success">
@@ -948,7 +950,7 @@
   </div>
 
 </div>
-</form>
+</div>
 </div>
 
 <script>
@@ -982,12 +984,7 @@
     if (!pad) return { clear: function(){}, isSigned: function(){ return false; } };
 
     var cv  = document.createElement('canvas');
-    cv.style.position = 'absolute';
-    cv.style.top  = '0';
-    cv.style.left = '0';
-    cv.style.width  = '100%';
-    cv.style.height = '100%';
-    cv.style.touchAction = 'none';
+    cv.style.cssText = 'display:block;position:absolute;top:0;left:0;width:100%;height:100%;touch-action:none;z-index:10;';
     pad.appendChild(cv);
     var ctx = cv.getContext('2d');
 
@@ -1133,11 +1130,7 @@
   };
 
   // ── FORMSPREE SUBMISSION ────────────────────────────────────
-  var form = document.getElementById('patient-form');
-  if (form) {
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-
+  window.submitForm = function() {
       var nameField = document.getElementById('field-patient');
       if (nameField && !nameField.value.trim()) {
         nameField.focus();
@@ -1152,79 +1145,25 @@
       btn.textContent = 'Sending…';
       btn.style.opacity = '0.6';
 
-      // Check signatures
-      var sigCanvas = document.getElementById('sig-canvas');
-      var witCanvas = document.getElementById('wit-canvas');
-      var patientSigned = sigCanvas && sigCanvas.getContext('2d').getImageData(0,0,sigCanvas.width,sigCanvas.height).data.some(function(x,i){ return i%4!==3 && x>0; });
-      var witnessSigned = witCanvas && witCanvas.getContext('2d').getImageData(0,0,witCanvas.width,witCanvas.height).data.some(function(x,i){ return i%4!==3 && x>0; });
+      var sigPadSigned = sigPad && sigPad.isSigned();
+      var witPadSigned = witPad && witPad.isSigned();
 
-      // Collect all named form fields into an object
-      var formData = new FormData(form);
-      var fields = {};
-      formData.forEach(function(val, key) { if (key !== '_subject') fields[key] = val; });
-      fields['patient_signed']  = patientSigned ? 'Yes — signed digitally' : 'No signature provided';
-      fields['witness_signed']  = witnessSigned ? 'Yes — signed digitally' : 'Not signed';
-
-      // (table built by Formspree _template:table)
-
-
-      // Build clean payload with readable labels, skipping empty fields
       var payload = new FormData();
       payload.append('_subject', 'New Patient Registration — NeuroHub');
       payload.append('_template', 'table');
 
-      function addField(label, value) {
-        if (value && value.trim && value.trim() !== '') {
-          payload.append(label, value.trim());
+      // Collect all input/select fields from the form div
+      var allInputs = document.getElementById('patient-form').querySelectorAll('input[name], select[name], textarea[name]');
+      allInputs.forEach(function(inp) {
+        if (inp.name && inp.name.charAt(0) !== '_' && inp.value.trim()) {
+          payload.append(inp.name, inp.value.trim());
         }
-      }
+      });
 
-      // ── PATIENT INFORMATION ──
-      payload.append('▸ PATIENT INFORMATION', '──────────────');
-      addField('Full Name',                          fields['patient_full_name']);
-      addField('Date of Birth',                      fields['patient_dob']);
-      addField('ID / Passport Number',               fields['patient_id_number']);
-      addField('Gender',                             fields['patient_gender']);
-      addField('Home Language',                      fields['patient_language']);
-      addField('Residential Address',                fields['patient_address']);
-      addField('Cell Number',                        fields['patient_cell']);
-      addField('Email Address',                      fields['patient_email']);
-      addField('Occupation / School',                fields['patient_occupation']);
-      addField('Employer / School',                  fields['patient_employer']);
+      payload.append('Patient Signature',  sigPadSigned  ? 'Yes — signed digitally' : 'Not signed');
+      payload.append('Witness Signature',  witPadSigned  ? 'Yes — signed digitally' : 'Not signed');
 
-      // ── MEDICAL AID ──
-      payload.append('▸ MEDICAL AID', '──────────────');
-      addField('Medical Aid Scheme',                 fields['medaid_scheme']);
-      addField('Plan / Option',                      fields['medaid_plan']);
-      addField('Member Number',                      fields['medaid_member_number']);
-      addField('Dependant Code',                     fields['medaid_dependant_code']);
-      addField('Main Member Full Name',              fields['medaid_main_member_name']);
-      addField('Main Member ID Number',              fields['medaid_main_member_id']);
-      addField('Main Member Date of Birth',          fields['medaid_main_member_dob']);
-      addField('Main Member Cell',                   fields['medaid_main_member_cell']);
-
-      // ── RESPONSIBLE PERSON ──
-      payload.append('▸ RESPONSIBLE FOR ACCOUNT', '──────────────');
-      addField('Relationship to Patient',            fields['responsible_relationship'] || fields['consent_relationship']);
-      addField('Full Name',                          fields['responsible_full_name']);
-      addField('ID / Passport Number',               fields['responsible_id']);
-      addField('Date of Birth',                      fields['responsible_dob']);
-      addField('Residential Address',                fields['responsible_address']);
-      addField('Cell Number',                        fields['responsible_cell']);
-      addField('Email Address',                      fields['responsible_email']);
-      addField('Occupation',                         fields['responsible_occupation']);
-      addField('Employer',                           fields['responsible_employer']);
-
-      // ── CONSENT ──
-      payload.append('▸ CONSENT & SIGNATURE', '──────────────');
-      addField('Signer Name',                        fields['consent_signer_name']);
-      addField('Date Signed',                        fields['consent_date']);
-      addField('Relationship',                       fields['consent_relationship']);
-      addField('Medical Aid Reference',              fields['consent_medaid']);
-      addField('Patient Signature',                  fields['patient_signed']);
-      addField('Witness Signature',                  fields['witness_signed']);
-
-      fetch(form.action, {
+      fetch('https://formspree.io/f/mykbylrr', {
         method:  'POST',
         headers: { 'Accept': 'application/json' },
         body:    payload
@@ -1235,6 +1174,16 @@
           btn.textContent = '✓ Submitted';
           document.querySelector('.consent-submit').scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
+          throw new Error('Server error');
+        }
+      })
+      .catch(function() {
+        btn.disabled    = false;
+        btn.style.opacity = '1';
+        btn.textContent = '✓ I Acknowledge & Agree';
+        alert('There was a problem submitting. Please try again.');
+      });
+    }; else {
           return response.json().then(function(data) { throw new Error(JSON.stringify(data)); });
         }
       })
