@@ -502,6 +502,7 @@
   .details-field input:focus { border-bottom-color: var(--sage); }
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 </head>
 <body>
 
@@ -869,14 +870,25 @@
       <!-- SIGNATURE -->
       <div style="margin-top:28px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-          <div>
+
+          <div class="sig-box">
             <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Patient Signature</label>
-            <input type="text" id="mobile-sig" name="patient_signature_name" placeholder="Type your full name" style="width:100%;border:none;border-bottom:2px solid var(--sage);padding:10px 0;font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--dark);outline:none;background:transparent;box-sizing:border-box;">
+            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;">
+              <canvas id="sig-canvas" style="width:100%;height:150px;display:block;border-radius:12px;touch-action:none;"></canvas>
+              <div id="sig-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;">Sign here</div>
+            </div>
+            <button type="button" onclick="sigPad.clear();document.getElementById('sig-empty').style.display='block';" style="margin-top:6px;background:none;border:none;font-family:inherit;font-size:12px;color:var(--mid);cursor:pointer;text-decoration:underline;padding:0;">Clear</button>
           </div>
-          <div>
+
+          <div class="sig-box">
             <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Witness Signature <span style="font-weight:300;font-size:11px;">(if applicable)</span></label>
-            <input type="text" id="mobile-wit" name="witness_signature_name" placeholder="Type witness full name" style="width:100%;border:none;border-bottom:2px solid var(--border);padding:10px 0;font-family:Georgia,serif;font-size:20px;font-style:italic;color:var(--dark);outline:none;background:transparent;box-sizing:border-box;">
+            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;">
+              <canvas id="wit-canvas" style="width:100%;height:150px;display:block;border-radius:12px;touch-action:none;"></canvas>
+              <div id="wit-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;">Sign here</div>
+            </div>
+            <button type="button" onclick="witPad.clear();document.getElementById('wit-empty').style.display='block';" style="margin-top:6px;background:none;border:none;font-family:inherit;font-size:12px;color:var(--mid);cursor:pointer;text-decoration:underline;padding:0;">Clear</button>
           </div>
+
         </div>
       </div>
 
@@ -912,9 +924,61 @@
 
 (function() {
 
+  // ── SIGNATURE PAD (SignaturePad.js) ──────────────────────────
+  var sigPad = null, witPad = null;
+
+  function initPads() {
+    var ratio = Math.max(window.devicePixelRatio || 1, 1);
+    function setupPad(canvasId, emptyId) {
+      var c = document.getElementById(canvasId);
+      if (!c) return null;
+      c.width  = c.offsetWidth  * ratio;
+      c.height = c.offsetHeight * ratio;
+      c.getContext('2d').scale(ratio, ratio);
+      var pad = new SignaturePad(c, { minWidth:1, maxWidth:3, penColor:'#1e3a4a' });
+      pad.addEventListener('beginStroke', function() {
+        var el = document.getElementById(emptyId);
+        if (el) el.style.display = 'none';
+      });
+      return pad;
+    }
+    sigPad = setupPad('sig-canvas', 'sig-empty');
+    witPad = setupPad('wit-canvas', 'wit-empty');
+  }
+
+  if (document.readyState === 'complete') { initPads(); }
+  else { window.addEventListener('load', initPads); }
+
+
   // Fix contact email link (prevents Cloudflare obfuscation)
   var el = document.getElementById('contac
 (function() {
+
+  // ── SIGNATURE PAD (SignaturePad.js) ──────────────────────────
+  var sigPad = null, witPad = null;
+
+  function initPads() {
+    var ratio = Math.max(window.devicePixelRatio || 1, 1);
+    function setupPad(canvasId, emptyId) {
+      var c = document.getElementById(canvasId);
+      if (!c) return null;
+      c.width  = c.offsetWidth  * ratio;
+      c.height = c.offsetHeight * ratio;
+      c.getContext('2d').scale(ratio, ratio);
+      var pad = new SignaturePad(c, { minWidth:1, maxWidth:3, penColor:'#1e3a4a' });
+      pad.addEventListener('beginStroke', function() {
+        var el = document.getElementById(emptyId);
+        if (el) el.style.display = 'none';
+      });
+      return pad;
+    }
+    sigPad = setupPad('sig-canvas', 'sig-empty');
+    witPad = setupPad('wit-canvas', 'wit-empty');
+  }
+
+  if (document.readyState === 'complete') { initPads(); }
+  else { window.addEventListener('load', initPads); }
+
 
   // Fix contact email link (prevents Cloudflare obfuscation)
   var el = document.getElementById('contact-email-link');
@@ -963,10 +1027,8 @@
       btn.textContent = 'Sending…';
       btn.style.opacity = '0.6';
 
-      var sigName = (document.getElementById('mobile-sig') || {}).value || '';
-      var witName = (document.getElementById('mobile-wit') || {}).value || '';
-      var patientDidSign = sigName.trim().length > 0;
-      var witnessDidSign = witName.trim().length > 0;
+      var patientDidSign = sigPad && !sigPad.isEmpty();
+      var witnessDidSign = witPad && !witPad.isEmpty();
 
       var payload = new FormData();
       payload.append('_subject', 'New Patient Registration — NeuroHub');
@@ -980,8 +1042,8 @@
         }
       });
 
-      payload.append('Patient Signature', patientDidSign ? 'Signed as: ' + sigName.trim() : 'Not signed');
-      payload.append('Witness Signature', witnessDidSign ? 'Signed as: ' + witName.trim() : 'Not signed');
+      payload.append('Patient Signature', patientDidSign ? 'Yes — signed digitally' : 'Not signed');
+      payload.append('Witness Signature', witnessDidSign ? 'Yes — signed digitally' : 'Not signed');
 
       fetch('https://formspree.io/f/mykbylrr', {
         method:  'POST',
