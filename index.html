@@ -502,7 +502,6 @@
   .details-field input:focus { border-bottom-color: var(--sage); }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
 </head>
 <body>
 
@@ -869,10 +868,24 @@
 
       <!-- SIGNATURE -->
       <div style="margin-top:28px;">
-        <iframe id="sigframe" src="sigpad.html"
-          style="width:100%;height:180px;border:none;display:block;"
-          scrolling="no">
-        </iframe>
+<div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <div>
+    <div class="label">Patient Signature</div>
+    <div class="pad-wrap" id="sw1">
+      <canvas id="c1"></canvas>
+      <div class="hint" id="h1">Sign here</div>
+    </div>
+    <button class="clear" onclick="clear1()">Clear</button>
+  </div>
+  <div>
+    <div class="label">Witness <span style="font-weight:300;font-size:10px;">(if applicable)</span></div>
+    <div class="pad-wrap" id="sw2">
+      <canvas id="c2"></canvas>
+      <div class="hint" id="h2">Sign here</div>
+    </div>
+    <button class="clear" onclick="clear2()">Clear</button>
+  </div>
+</div>
       </div>
 
       <div class="consent-submit">
@@ -932,25 +945,6 @@
 
 
 
-  // Listen for signature data from iframe
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'sigs') {
-      window._patientSigned = e.data.patient === 'Yes — signed digitally';
-      window._witnessSigned = e.data.witness === 'Yes — signed digitally';
-    }
-  });
-
-  // Request sigs from iframe before submit
-  var origSubmit = window.submitForm;
-  window.submitForm = function() {
-    var frame = document.getElementById('sigframe');
-    if (frame) {
-      frame.contentWindow.postMessage('get_sigs', '*');
-      setTimeout(origSubmit, 200); // wait for response
-    } else {
-      origSubmit();
-    }
-  };
 
   // Fix contact email link (prevents Cloudflare obfuscation)
   var el = document.getElementById('contac
@@ -981,25 +975,6 @@
 
 
 
-  // Listen for signature data from iframe
-  window.addEventListener('message', function(e) {
-    if (e.data && e.data.type === 'sigs') {
-      window._patientSigned = e.data.patient === 'Yes — signed digitally';
-      window._witnessSigned = e.data.witness === 'Yes — signed digitally';
-    }
-  });
-
-  // Request sigs from iframe before submit
-  var origSubmit = window.submitForm;
-  window.submitForm = function() {
-    var frame = document.getElementById('sigframe');
-    if (frame) {
-      frame.contentWindow.postMessage('get_sigs', '*');
-      setTimeout(origSubmit, 200); // wait for response
-    } else {
-      origSubmit();
-    }
-  };
 
   // Fix contact email link (prevents Cloudflare obfuscation)
   var el = document.getElementById('contact-email-link');
@@ -1049,8 +1024,8 @@
       btn.style.opacity = '0.6';
 
       // Sigs come from iframe
-      var patientDidSign = window._patientSigned || false;
-      var witnessDidSign = window._witnessSigned || false;
+      var patientDidSign = p1 && !p1.isEmpty();
+      var witnessDidSign = p2 && !p2.isEmpty();
 
       var payload = new FormData();
       payload.append('_subject', 'New Patient Registration — NeuroHub');
@@ -1100,5 +1075,141 @@
       });
     });
   }
+
+
+// ── INLINE SIGNATURE PAD ──
+
+// Minimal SignaturePad implementation (no external dependencies)
+function SignaturePad(canvas, opts) {
+  opts = opts || {};
+  this.canvas = canvas;
+  this.ctx = canvas.getContext('2d');
+  this.penColor = opts.penColor || '#000';
+  this.minWidth = opts.minWidth || 1;
+  this.maxWidth = opts.maxWidth || 3;
+  this._isEmpty = true;
+  this._drawing = false;
+  this._listeners = {};
+  this._lastX = 0;
+  this._lastY = 0;
+
+  var self = this;
+
+  function getPos(e) {
+    var r = canvas.getBoundingClientRect();
+    var ratio = window.devicePixelRatio || 1;
+    var src = e.touches ? e.touches[0] : e;
+    return {
+      x: (src.clientX - r.left),
+      y: (src.clientY - r.top)
+    };
+  }
+
+  function onDown(e) {
+    e.preventDefault();
+    self._drawing = true;
+    var p = getPos(e);
+    self._lastX = p.x;
+    self._lastY = p.y;
+    self.ctx.beginPath();
+    self.ctx.moveTo(p.x, p.y);
+    self.ctx.strokeStyle = self.penColor;
+    self.ctx.lineWidth = self.maxWidth;
+    self.ctx.lineCap = 'round';
+    self.ctx.lineJoin = 'round';
+    self._isEmpty = false;
+    self._fire('beginStroke');
+  }
+
+  function onMove(e) {
+    e.preventDefault();
+    if (!self._drawing) return;
+    var p = getPos(e);
+    self.ctx.lineTo(p.x, p.y);
+    self.ctx.stroke();
+    self.ctx.beginPath();
+    self.ctx.moveTo(p.x, p.y);
+    self._lastX = p.x;
+    self._lastY = p.y;
+  }
+
+  function onUp(e) {
+    e.preventDefault();
+    self._drawing = false;
+  }
+
+  canvas.addEventListener('mousedown',  onDown, false);
+  canvas.addEventListener('mousemove',  onMove, false);
+  canvas.addEventListener('mouseup',    onUp,   false);
+  canvas.addEventListener('mouseleave', onUp,   false);
+  canvas.addEventListener('touchstart', onDown, { passive: false });
+  canvas.addEventListener('touchmove',  onMove, { passive: false });
+  canvas.addEventListener('touchend',   onUp,   { passive: false });
+}
+
+SignaturePad.prototype.isEmpty = function() { return this._isEmpty; };
+SignaturePad.prototype.clear = function() {
+  this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  this._isEmpty = true;
+};
+SignaturePad.prototype.addEventListener = function(type, fn) {
+  if (!this._listeners[type]) this._listeners[type] = [];
+  this._listeners[type].push(fn);
+};
+SignaturePad.prototype._fire = function(type) {
+  var fns = this._listeners[type] || [];
+  for (var i = 0; i < fns.length; i++) fns[i]();
+};
+
+
+var p1, p2;
+
+function init() {
+  function make(canvasId, wrapId, hintId) {
+    var wrap   = document.getElementById(wrapId);
+    var canvas = document.getElementById(canvasId);
+    var hint   = document.getElementById(hintId);
+    var r = window.devicePixelRatio || 1;
+
+    // Use window.innerWidth - works correctly inside iframe
+    var cols  = window.innerWidth < 420 ? 1 : 2;
+    var w = Math.floor((window.innerWidth - (cols === 2 ? 26 : 16)) / cols);
+    var h = 120;
+
+    wrap.style.height = h + 'px';
+    canvas.width  = w * r;
+    canvas.height = h * r;
+    canvas.style.width  = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.getContext('2d').scale(r, r);
+
+    var pad = new SignaturePad(canvas, { penColor: '#1e3a4a', minWidth: 1.5, maxWidth: 3 });
+    pad.addEventListener('beginStroke', function() { hint.style.display = 'none'; });
+    return pad;
+  }
+  p1 = make('c1', 'sw1', 'h1');
+  p2 = make('c2', 'sw2', 'h2');
+  pad_ready();
+}
+
+function pad_ready() {
+  window.parent.postMessage({ type: 'pad_ready' }, '*');
+}
+
+function clear1() { p1.clear(); document.getElementById('h1').style.display = ''; }
+function clear2() { p2.clear(); document.getElementById('h2').style.display = ''; }
+
+// Allow parent to query signature status
+window.addEventListener('message', function(e) {
+  if (e.data === 'get_sigs') {
+    window.parent.postMessage({
+      type: 'sigs',
+      patient: p1 && !p1.isEmpty() ? 'Yes — signed digitally' : 'Not signed',
+      witness: p2 && !p2.isEmpty() ? 'Yes — signed digitally' : 'Not signed'
+    }, '*');
+  }
+});
+
+window.addEventListener('load', init);
 
 })();
