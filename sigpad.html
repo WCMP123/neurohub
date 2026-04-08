@@ -3,7 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js?v=1775638892"></script>
+<script>
+// Minimal SignaturePad implementation (no external dependencies)
+function SignaturePad(canvas, opts) {
+  opts = opts || {};
+  this.canvas = canvas;
+  this.ctx = canvas.getContext('2d');
+  this.penColor = opts.penColor || '#000';
+  this.minWidth = opts.minWidth || 1;
+  this.maxWidth = opts.maxWidth || 3;
+  this._isEmpty = true;
+  this._drawing = false;
+  this._listeners = {};
+  this._lastX = 0;
+  this._lastY = 0;
+
+  var self = this;
+
+  function getPos(e) {
+    var r = canvas.getBoundingClientRect();
+    var ratio = window.devicePixelRatio || 1;
+    var src = e.touches ? e.touches[0] : e;
+    return {
+      x: (src.clientX - r.left),
+      y: (src.clientY - r.top)
+    };
+  }
+
+  function onDown(e) {
+    e.preventDefault();
+    self._drawing = true;
+    var p = getPos(e);
+    self._lastX = p.x;
+    self._lastY = p.y;
+    self.ctx.beginPath();
+    self.ctx.moveTo(p.x, p.y);
+    self.ctx.strokeStyle = self.penColor;
+    self.ctx.lineWidth = self.maxWidth;
+    self.ctx.lineCap = 'round';
+    self.ctx.lineJoin = 'round';
+    self._isEmpty = false;
+    self._fire('beginStroke');
+  }
+
+  function onMove(e) {
+    e.preventDefault();
+    if (!self._drawing) return;
+    var p = getPos(e);
+    self.ctx.lineTo(p.x, p.y);
+    self.ctx.stroke();
+    self.ctx.beginPath();
+    self.ctx.moveTo(p.x, p.y);
+    self._lastX = p.x;
+    self._lastY = p.y;
+  }
+
+  function onUp(e) {
+    e.preventDefault();
+    self._drawing = false;
+  }
+
+  canvas.addEventListener('mousedown',  onDown, false);
+  canvas.addEventListener('mousemove',  onMove, false);
+  canvas.addEventListener('mouseup',    onUp,   false);
+  canvas.addEventListener('mouseleave', onUp,   false);
+  canvas.addEventListener('touchstart', onDown, { passive: false });
+  canvas.addEventListener('touchmove',  onMove, { passive: false });
+  canvas.addEventListener('touchend',   onUp,   { passive: false });
+}
+
+SignaturePad.prototype.isEmpty = function() { return this._isEmpty; };
+SignaturePad.prototype.clear = function() {
+  this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  this._isEmpty = true;
+};
+SignaturePad.prototype.addEventListener = function(type, fn) {
+  if (!this._listeners[type]) this._listeners[type] = [];
+  this._listeners[type].push(fn);
+};
+SignaturePad.prototype._fire = function(type) {
+  var fns = this._listeners[type] || [];
+  for (var i = 0; i < fns.length; i++) fns[i]();
+};
+</script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: white; font-family: Arial, sans-serif; padding: 8px; }
