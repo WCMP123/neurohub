@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: white; font-family: Arial, sans-serif; padding: 8px; }
+  .label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #1e3a4a; margin-bottom: 6px; }
+  .pad-wrap { border: 2px dashed #c0d8e8; border-radius: 10px; background: #fff; height: 120px; position: relative; }
+  canvas { display: block; border-radius: 10px; }
+  .hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #bbb; font-size: 13px; pointer-events: none; }
+  .clear { background: none; border: none; font-size: 11px; color: #888; text-decoration: underline; cursor: pointer; margin-top: 4px; padding: 0; font-family: inherit; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 400px) { .row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="row">
+  <div>
+    <div class="label">Patient Signature</div>
+    <div class="pad-wrap" id="sw1">
+      <canvas id="c1"></canvas>
+      <div class="hint" id="h1">Sign here</div>
+    </div>
+    <button class="clear" onclick="clear1()">Clear</button>
+  </div>
+  <div>
+    <div class="label">Witness <span style="font-weight:300;font-size:10px;">(if applicable)</span></div>
+    <div class="pad-wrap" id="sw2">
+      <canvas id="c2"></canvas>
+      <div class="hint" id="h2">Sign here</div>
+    </div>
+    <button class="clear" onclick="clear2()">Clear</button>
+  </div>
+</div>
+
+<script>
+var p1, p2;
+
+function init() {
+  function make(canvasId, wrapId, hintId) {
+    var wrap   = document.getElementById(wrapId);
+    var canvas = document.getElementById(canvasId);
+    var hint   = document.getElementById(hintId);
+    var r = window.devicePixelRatio || 1;
+    canvas.width  = wrap.clientWidth  * r;
+    canvas.height = wrap.clientHeight * r;
+    canvas.style.width  = wrap.clientWidth  + 'px';
+    canvas.style.height = wrap.clientHeight + 'px';
+    canvas.getContext('2d').scale(r, r);
+    var pad = new SignaturePad(canvas, { penColor: '#1e3a4a', minWidth: 1.5, maxWidth: 3 });
+    pad.addEventListener('beginStroke', function() { hint.style.display = 'none'; });
+    return pad;
+  }
+  p1 = make('c1', 'sw1', 'h1');
+  p2 = make('c2', 'sw2', 'h2');
+
+  // Tell parent frame we're ready and report signatures on change
+  pad_ready();
+}
+
+function pad_ready() {
+  window.parent.postMessage({ type: 'pad_ready' }, '*');
+}
+
+function clear1() { p1.clear(); document.getElementById('h1').style.display = ''; }
+function clear2() { p2.clear(); document.getElementById('h2').style.display = ''; }
+
+// Allow parent to query signature status
+window.addEventListener('message', function(e) {
+  if (e.data === 'get_sigs') {
+    window.parent.postMessage({
+      type: 'sigs',
+      patient: p1 && !p1.isEmpty() ? 'Yes — signed digitally' : 'Not signed',
+      witness: p2 && !p2.isEmpty() ? 'Yes — signed digitally' : 'Not signed'
+    }, '*');
+  }
+});
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
