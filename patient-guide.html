@@ -873,7 +873,7 @@
 
           <div class="sig-box">
             <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Patient Signature</label>
-            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;">
+            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;height:150px;">
               <canvas id="sig-canvas" style="display:block;border-radius:12px;touch-action:none;"></canvas>
               <div id="sig-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;">Sign here</div>
             </div>
@@ -882,7 +882,7 @@
 
           <div class="sig-box">
             <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Witness Signature <span style="font-weight:300;font-size:11px;">(if applicable)</span></label>
-            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;">
+            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;height:150px;">
               <canvas id="wit-canvas" style="display:block;border-radius:12px;touch-action:none;"></canvas>
               <div id="wit-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;">Sign here</div>
             </div>
@@ -927,46 +927,25 @@
   // ── SIGNATURE PAD (SignaturePad.js) ──────────────────────────
   var sigPad = null, witPad = null;
 
-  function initPads() {
-    function setupPad(canvasId, emptyId) {
-      var c = document.getElementById(canvasId);
-      if (!c) return null;
-
-      // Force canvas to fill its parent using getBoundingClientRect
-      var parent = c.parentElement;
-      var rect   = parent.getBoundingClientRect();
-      var ratio  = window.devicePixelRatio || 1;
-
-      // Set explicit pixel dimensions
-      c.style.width  = rect.width  + 'px';
-      c.style.height = '150px';
-      c.width  = rect.width  * ratio;
-      c.height = 150 * ratio;
-      c.getContext('2d').scale(ratio, ratio);
-
-      var pad = new SignaturePad(c, {
-        minWidth: 1,
-        maxWidth: 3,
-        penColor: '#1e3a4a',
-        backgroundColor: 'rgba(255,255,255,0)'
-      });
-
-      pad.addEventListener('beginStroke', function() {
-        var el = document.getElementById(emptyId);
-        if (el) el.style.display = 'none';
-      });
-
-      return pad;
-    }
-
-    sigPad = setupPad('sig-canvas', 'sig-empty');
-    witPad = setupPad('wit-canvas', 'wit-empty');
+  function setupPad(canvasId, emptyId) {
+    var c = document.getElementById(canvasId);
+    if (!c) return null;
+    var ratio = window.devicePixelRatio || 1;
+    c.width  = c.offsetWidth  * ratio;
+    c.height = c.offsetHeight * ratio;
+    c.getContext('2d').scale(ratio, ratio);
+    var pad = new SignaturePad(c, { minWidth:1, maxWidth:3, penColor:'#1e3a4a' });
+    pad.addEventListener('beginStroke', function() {
+      var el = document.getElementById(emptyId);
+      if (el) el.style.display = 'none';
+    });
+    return pad;
   }
 
-  // Try multiple times to ensure DOM is fully painted
-  setTimeout(initPads, 100);
-  setTimeout(initPads, 500);
-  window.addEventListener('resize', initPads);
+  window.addEventListener('load', function() {
+    sigPad = setupPad('sig-canvas', 'sig-empty');
+    witPad = setupPad('wit-canvas', 'wit-empty');
+  });
 
 
   // Fix contact email link (prevents Cloudflare obfuscation)
@@ -976,46 +955,25 @@
   // ── SIGNATURE PAD (SignaturePad.js) ──────────────────────────
   var sigPad = null, witPad = null;
 
-  function initPads() {
-    function setupPad(canvasId, emptyId) {
-      var c = document.getElementById(canvasId);
-      if (!c) return null;
-
-      // Force canvas to fill its parent using getBoundingClientRect
-      var parent = c.parentElement;
-      var rect   = parent.getBoundingClientRect();
-      var ratio  = window.devicePixelRatio || 1;
-
-      // Set explicit pixel dimensions
-      c.style.width  = rect.width  + 'px';
-      c.style.height = '150px';
-      c.width  = rect.width  * ratio;
-      c.height = 150 * ratio;
-      c.getContext('2d').scale(ratio, ratio);
-
-      var pad = new SignaturePad(c, {
-        minWidth: 1,
-        maxWidth: 3,
-        penColor: '#1e3a4a',
-        backgroundColor: 'rgba(255,255,255,0)'
-      });
-
-      pad.addEventListener('beginStroke', function() {
-        var el = document.getElementById(emptyId);
-        if (el) el.style.display = 'none';
-      });
-
-      return pad;
-    }
-
-    sigPad = setupPad('sig-canvas', 'sig-empty');
-    witPad = setupPad('wit-canvas', 'wit-empty');
+  function setupPad(canvasId, emptyId) {
+    var c = document.getElementById(canvasId);
+    if (!c) return null;
+    var ratio = window.devicePixelRatio || 1;
+    c.width  = c.offsetWidth  * ratio;
+    c.height = c.offsetHeight * ratio;
+    c.getContext('2d').scale(ratio, ratio);
+    var pad = new SignaturePad(c, { minWidth:1, maxWidth:3, penColor:'#1e3a4a' });
+    pad.addEventListener('beginStroke', function() {
+      var el = document.getElementById(emptyId);
+      if (el) el.style.display = 'none';
+    });
+    return pad;
   }
 
-  // Try multiple times to ensure DOM is fully painted
-  setTimeout(initPads, 100);
-  setTimeout(initPads, 500);
-  window.addEventListener('resize', initPads);
+  window.addEventListener('load', function() {
+    sigPad = setupPad('sig-canvas', 'sig-empty');
+    witPad = setupPad('wit-canvas', 'wit-empty');
+  });
 
 
   // Fix contact email link (prevents Cloudflare obfuscation)
