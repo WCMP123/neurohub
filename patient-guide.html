@@ -502,7 +502,7 @@
   .details-field input:focus { border-bottom-color: var(--sage); }
 
 </style>
-<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js?v=1775638892"></script>
 </head>
 <body>
 
@@ -869,27 +869,10 @@
 
       <!-- SIGNATURE -->
       <div style="margin-top:28px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-
-          <div class="sig-box">
-            <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Patient Signature</label>
-            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;height:150px;">
-              <canvas id="sig-canvas" style="display:block;border-radius:12px;touch-action:none;"></canvas>
-              <div id="sig-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;">Sign here</div>
-            </div>
-            <button type="button" onclick="sigPad.clear();document.getElementById('sig-empty').style.display='block';" style="margin-top:6px;background:none;border:none;font-family:inherit;font-size:12px;color:var(--mid);cursor:pointer;text-decoration:underline;padding:0;">Clear</button>
-          </div>
-
-          <div class="sig-box">
-            <label style="display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dark);margin-bottom:8px;">Witness Signature <span style="font-weight:300;font-size:11px;">(if applicable)</span></label>
-            <div style="border:2px dashed var(--border);border-radius:12px;background:#fff;position:relative;height:150px;">
-              <canvas id="wit-canvas" style="display:block;border-radius:12px;touch-action:none;"></canvas>
-              <div id="wit-empty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#bbb;font-size:13px;pointer-events:none;">Sign here</div>
-            </div>
-            <button type="button" onclick="witPad.clear();document.getElementById('wit-empty').style.display='block';" style="margin-top:6px;background:none;border:none;font-family:inherit;font-size:12px;color:var(--mid);cursor:pointer;text-decoration:underline;padding:0;">Clear</button>
-          </div>
-
-        </div>
+        <iframe id="sigframe" src="sigpad.html"
+          style="width:100%;height:180px;border:none;display:block;"
+          scrolling="no">
+        </iframe>
       </div>
 
       <div class="consent-submit">
@@ -948,6 +931,27 @@
   });
 
 
+
+  // Listen for signature data from iframe
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'sigs') {
+      window._patientSigned = e.data.patient === 'Yes — signed digitally';
+      window._witnessSigned = e.data.witness === 'Yes — signed digitally';
+    }
+  });
+
+  // Request sigs from iframe before submit
+  var origSubmit = window.submitForm;
+  window.submitForm = function() {
+    var frame = document.getElementById('sigframe');
+    if (frame) {
+      frame.contentWindow.postMessage('get_sigs', '*');
+      setTimeout(origSubmit, 200); // wait for response
+    } else {
+      origSubmit();
+    }
+  };
+
   // Fix contact email link (prevents Cloudflare obfuscation)
   var el = document.getElementById('contac
 (function() {
@@ -975,6 +979,27 @@
     witPad = setupPad('wit-canvas', 'wit-empty');
   });
 
+
+
+  // Listen for signature data from iframe
+  window.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'sigs') {
+      window._patientSigned = e.data.patient === 'Yes — signed digitally';
+      window._witnessSigned = e.data.witness === 'Yes — signed digitally';
+    }
+  });
+
+  // Request sigs from iframe before submit
+  var origSubmit = window.submitForm;
+  window.submitForm = function() {
+    var frame = document.getElementById('sigframe');
+    if (frame) {
+      frame.contentWindow.postMessage('get_sigs', '*');
+      setTimeout(origSubmit, 200); // wait for response
+    } else {
+      origSubmit();
+    }
+  };
 
   // Fix contact email link (prevents Cloudflare obfuscation)
   var el = document.getElementById('contact-email-link');
@@ -1023,8 +1048,9 @@
       btn.textContent = 'Sending…';
       btn.style.opacity = '0.6';
 
-      var patientDidSign = sigPad && !sigPad.isEmpty();
-      var witnessDidSign = witPad && !witPad.isEmpty();
+      // Sigs come from iframe
+      var patientDidSign = window._patientSigned || false;
+      var witnessDidSign = window._witnessSigned || false;
 
       var payload = new FormData();
       payload.append('_subject', 'New Patient Registration — NeuroHub');
