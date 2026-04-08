@@ -127,19 +127,25 @@ function init() {
     var canvas = document.getElementById(canvasId);
     var hint   = document.getElementById(hintId);
     var r = window.devicePixelRatio || 1;
-    canvas.width  = wrap.clientWidth  * r;
-    canvas.height = wrap.clientHeight * r;
-    canvas.style.width  = wrap.clientWidth  + 'px';
-    canvas.style.height = wrap.clientHeight + 'px';
+
+    // Use window.innerWidth - works correctly inside iframe
+    var cols  = window.innerWidth < 420 ? 1 : 2;
+    var w = Math.floor((window.innerWidth - (cols === 2 ? 26 : 16)) / cols);
+    var h = 120;
+
+    wrap.style.height = h + 'px';
+    canvas.width  = w * r;
+    canvas.height = h * r;
+    canvas.style.width  = w + 'px';
+    canvas.style.height = h + 'px';
     canvas.getContext('2d').scale(r, r);
+
     var pad = new SignaturePad(canvas, { penColor: '#1e3a4a', minWidth: 1.5, maxWidth: 3 });
     pad.addEventListener('beginStroke', function() { hint.style.display = 'none'; });
     return pad;
   }
   p1 = make('c1', 'sw1', 'h1');
   p2 = make('c2', 'sw2', 'h2');
-
-  // Tell parent frame we're ready and report signatures on change
   pad_ready();
 }
 
